@@ -2,16 +2,14 @@ package com.shujiu.zaky3d.ui.main
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.view.animation.TranslateAnimation
 import android.view.inputmethod.InputMethodManager
-import android.widget.FrameLayout
-import android.widget.PopupWindow
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
@@ -132,69 +130,17 @@ class MainFragment : Fragment() {
      * 软键盘监听
      */
     private fun inputInit() {
-//        val popupWindow = PopupWindow(requireActivity()).apply {
-//            softInputMode =
-//                WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
-//            inputMethodMode = PopupWindow.INPUT_METHOD_NEEDED
-//            width = 1
-//            height = WindowManager.LayoutParams.MATCH_PARENT
-//            contentView = FrameLayout(requireActivity()).apply {
-//                layoutParams = ViewGroup.LayoutParams(0, WindowManager.LayoutParams.MATCH_PARENT)
-//                addOnLayoutChangeListener(object:View.OnLayoutChangeListener {
-//                    override fun onLayoutChange(
-//                        v: View,
-//                        left: Int,
-//                        top: Int,
-//                        right: Int,
-//                        bottom: Int,
-//                        oldLeft: Int,
-//                        oldTop: Int,
-//                        oldRight: Int,
-//                        oldBottom: Int
-//                    ) {
-//                        Log.d(TAG, " top:$top bottom:$bottom")
-//                    }
-//
-//                })
-//            }
-//        }
-
-//        ViewCompat.setOnApplyWindowInsetsListener(
-//            viewBinding.bottomLayout
-//        ) { v, insets ->
-//
-//            Log.d(TAG, "popup apply insets typeMask:${insets}")
-//
-//            insets
-//        }
-
         ViewCompat.setWindowInsetsAnimationCallback(
             viewBinding.bottomLayout,
             object :
                 WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
 
-                override fun onPrepare(animation: WindowInsetsAnimationCompat) {
-                    Log.d(TAG, "inset animation onPrepare typeMask:${animation.typeMask}")
-                }
-
-                override fun onStart(
-                    animation: WindowInsetsAnimationCompat,
-                    bounds: WindowInsetsAnimationCompat.BoundsCompat
-                ): WindowInsetsAnimationCompat.BoundsCompat {
-                    Log.d(TAG, "inset animation onStart typeMask:${animation.typeMask}")
-                    return bounds
-                }
-
                 override fun onEnd(animation: WindowInsetsAnimationCompat) {
                     if (animation.typeMask == WindowInsetsCompat.Type.ime()) {
-                        if (viewBinding.bottomLayout.translationY == 0.0f) {
+                        if (lastImeInsets?.isVisible(WindowInsetsCompat.Type.ime()) == false) {
                             viewModel.inputToggle(false)
                         }
                     }
-                    Log.d(
-                        TAG,
-                        "inset animation onEnd typeMask:${animation.typeMask} ty:${viewBinding.bottomLayout.translationY} eq:${viewBinding.bottomLayout.translationY == 0.0f}"
-                    )
                 }
 
                 override fun onProgress(
@@ -202,14 +148,8 @@ class MainFragment : Fragment() {
                     runningAnimations: MutableList<WindowInsetsAnimationCompat>
                 ): WindowInsetsCompat {
                     for (animation in runningAnimations) {
-                        Log.d(TAG, "inset animation onProgress typeMask:${animation.typeMask}")
                         if (animation.typeMask == WindowInsetsCompat.Type.ime()) {
-                            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-                            onKeyboardToggle(imeInsets.bottom.toFloat())
-                            Log.d(
-                                TAG,
-                                "inset animation onProgress typeMask:${animation.typeMask} insets top:${imeInsets.top} bottom:${imeInsets.bottom}"
-                            )
+                            onKeyboardToggle(insets)
                         }
                     }
                     return insets
@@ -218,12 +158,21 @@ class MainFragment : Fragment() {
             })
     }
 
+    private var lastImeInsets: WindowInsetsCompat? = null
+
     /**
      * 设置需要被软键盘顶起的视图
      */
-    private fun onKeyboardToggle(keyboardHeight: Float) {
-        viewBinding.chatList.translationY = -keyboardHeight
-        viewBinding.bottomLayout.translationY = -keyboardHeight
+    private fun onKeyboardToggle(insets: WindowInsetsCompat) {
+        lastImeInsets = insets
+        val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+        val sysInsets =
+            insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+        val keyboardHeight = imeInsets.bottom - sysInsets.bottom
+
+        val floatValue = if (keyboardHeight < 0) 0f else keyboardHeight.toFloat()
+        viewBinding.chatList.translationY = -floatValue
+        viewBinding.bottomLayout.translationY = -floatValue
     }
 
     /**
