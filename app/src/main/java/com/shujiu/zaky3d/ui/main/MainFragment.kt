@@ -1,7 +1,9 @@
 package com.shujiu.zaky3d.ui.main
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -13,6 +15,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
+import com.shujiu.zaky3d.BuildConfig
 import com.shujiu.zaky3d.databinding.MainFragmentBinding
 
 private const val TAG = "MainFragment"
@@ -134,10 +137,8 @@ class MainFragment : Fragment() {
                 WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
 
                 override fun onEnd(animation: WindowInsetsAnimationCompat) {
-                    if (animation.typeMask == WindowInsetsCompat.Type.ime()) {
-                        if (lastImeInsets?.isVisible(WindowInsetsCompat.Type.ime()) == false) {
-                            viewModel.inputToggle(false)
-                        }
+                    if (lastImeInsets?.isVisible(WindowInsetsCompat.Type.ime()) == false) {
+                        viewModel.inputToggle(false)
                     }
                 }
 
@@ -145,11 +146,10 @@ class MainFragment : Fragment() {
                     insets: WindowInsetsCompat,
                     runningAnimations: MutableList<WindowInsetsAnimationCompat>
                 ): WindowInsetsCompat {
-                    for (animation in runningAnimations) {
-                        if (animation.typeMask == WindowInsetsCompat.Type.ime()) {
-                            onKeyboardToggle(insets)
-                        }
-                    }
+                    val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+                    Log.d(TAG, "imeInsets top:${imeInsets.top} bottom:${imeInsets.bottom}")
+
+                    onKeyboardToggle(insets)
                     return insets
                 }
 
@@ -164,10 +164,10 @@ class MainFragment : Fragment() {
     private fun onKeyboardToggle(insets: WindowInsetsCompat) {
         lastImeInsets = insets
         val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-        val sysInsets =
-            insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-        val keyboardHeight = imeInsets.bottom - sysInsets.bottom
-
+        val sysInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+        val keyboardHeight = if(Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1
+        ) imeInsets.bottom - sysInsets.bottom else imeInsets.bottom
+        Log.d(TAG, "onKeyboardToggle imeInsets bottom:${imeInsets.bottom} sysInsets bottom:${sysInsets.bottom} keyboardHeight:$keyboardHeight")
         val floatValue = if (keyboardHeight < 0) 0f else keyboardHeight.toFloat()
         viewBinding.chatList.translationY = -floatValue
         viewBinding.bottomLayout.translationY = -floatValue
