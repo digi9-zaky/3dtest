@@ -52,9 +52,7 @@ class MainFragment : Fragment() {
         }
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
         init(viewLifecycleOwner)
-        view.post {
-            inputInit()
-        }
+        inputInit()
         u3dInit()
     }
 
